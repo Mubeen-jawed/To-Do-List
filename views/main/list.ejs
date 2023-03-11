@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include("../layouts/header") -%>
+
+  <body>
+    <div class="box" id="heading">
+      <h1><%= listTitle %></h1>
+    </div>
+
+    <div class="box">
+
+
+      <% newListItems.forEach(function(listItem) {  %>
+
+        <form action="/delete" method="post">
+
+          <div class="item">
+            <input type="checkbox" name="checkbox" value="<%=listItem._id%>" onChange="this.form.submit()">
+            <p><%= listItem.name %></p>
+          </div>
+
+          <input type="hidden" name="listName" value="<%=listTitle%>">
+
+        </form>  
+
+      <% }) %>
+
+      <form class="item" action="/" method="post">
+        <input
+          type="text"
+          name="item"
+          placeholder="Enter To-Do Item"
+          autocomplete="off"
+          autofocus
+        />
+        <button type="submit" name="list" value="<%=listTitle%>">+</button>
+      </form>
+    </div>
+  </body>
+
+  <%- include("../layouts/footer") -%>
+</html>

@@ -15,7 +15,7 @@ mongoose.connect('mongodb://127.0.0.1:27017/todolistDB',
     useNewUrlParser: true
   }
 );
-
+const dbt = mongoose.connection.db;
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error: "));
 db.once("open", function () {
@@ -70,11 +70,8 @@ let authenticated;
 // console.log(usersSchema.email, "email");
 app.set('view engine', 'ejs');
 
+
 app.get(`/`, function (req, res) {
-
-  // app.get('/:list', function (req, res) {
-  //   const customListItem = _.capitalize(req.params.list);
-
 
   if (authenticated) {
 
@@ -89,7 +86,7 @@ app.get(`/`, function (req, res) {
           res.render("main/list", { listTitle: 'Today', newListItems: result })
         }
 
-        res.redirect('/');
+        res.redirect(`/`);
 
       })
       .catch((err) => {
@@ -103,7 +100,7 @@ app.get(`/`, function (req, res) {
 
 })
 
-app.post("/", function (req, res) {
+app.post(`/`, function (req, res) {
   let item = req.body.item;
   let list = req.body.list;
 
@@ -113,7 +110,7 @@ app.post("/", function (req, res) {
 
   if (list === 'Today') {
     userList.save();
-    res.redirect('/');
+    res.redirect(`/`);
 
   } else {
     List.findOne({ name: list })
@@ -121,7 +118,7 @@ app.post("/", function (req, res) {
         foundList.items.push(userList);
         foundList.save().then(() => console.log('Item added to the custom list'));
 
-        res.redirect('/' + list)
+        res.redirect(`/` + list)
       })
       .catch((err) => {
         console.log(err);
@@ -138,7 +135,7 @@ app.post('/delete', function (req, res) {
     Item.deleteOne({ _id: (deleteItemId) })
       .then(function () {
         console.log("Data deleted"); // Success
-        res.redirect('/');
+        res.redirect(`/`);
       })
       .catch((err) => {
         console.log(err);
@@ -157,7 +154,7 @@ app.post('/delete', function (req, res) {
 
       .then(function () {
         console.log('Item has deleted from custom list');
-        res.redirect('/' + listName)
+        res.redirect(`/` + listName)
       })
 
       .catch(function (err) {
@@ -167,16 +164,16 @@ app.post('/delete', function (req, res) {
 
 })
 
-// app.get('/:list', function (req, res) {
-//   const customListItem = _.capitalize(req.params.list);
+// const result = db.users.collection("users").findOne({ email }).select("64916ee2131d9e8d990c2902").exec();
+
+
+// app.get('/:user', function (req, res) {
+//   const customListItem = _.capitalize(req.params.user);
 
 //   List.findOne({ name: customListItem })
 //     .then(function (foundList) {  // Success
 
-//       // console.log(foundList.name);
-
 //       if (!foundList) {
-
 //         // Create a new list
 //         const list = new List({
 //           name: customListItem,
@@ -197,9 +194,10 @@ app.post('/delete', function (req, res) {
 //     }).catch(function (error) {
 //       console.log(error); // Failure
 //     });
-
 // })
 
+// let userEmailId = "mubeenjawed3@gmal.com"
+// console.log(User.find({ email: userEmailId }));
 
 app.get('/signup', function (req, res) {
 
@@ -208,10 +206,12 @@ app.get('/signup', function (req, res) {
   }
 
   else {
-    res.redirect("/")
+    res.redirect(`/`)
   }
-
 })
+
+// let userEmail = "";
+// console.log(userEmail);
 
 app.post('/signup', function (req, res) {
   let userFirstName = req.body.firstName;
@@ -219,26 +219,35 @@ app.post('/signup', function (req, res) {
   let userEmail = req.body.email;
   let userPassword = req.body.password;
 
-  const userData = new User({
-    firstName: userFirstName,
-    lastName: userLastName,
-    email: userEmail,
-    password: userPassword,
-  })
   if (userFirstName.length && userLastName.length && userEmail.length && userPassword.length != 0) {
-    authenticated = true
-    res.redirect("/")
-    console.log("Fill up all the fields");
+    User.findOne({ email: userEmail, password: userPassword })
+      .then((foundList) => {
+        if (foundList) {
+          authenticated = true
+          res.redirect(`/${foundList.email}`)
+        }
+
+        else if (!foundList) {
+          const userData = new User({
+            firstName: userFirstName,
+            lastName: userLastName,
+            email: userEmail,
+            password: userPassword,
+          })
+
+          res.redirect(`/${userData.email}`)
+          authenticated = true
+          userData.save()
+        }
+      })
   }
 
   else {
+    console.log("Fill up all the fields");
     res.redirect("/signup")
   }
-
-
-  userData.save()
-
 })
+
 
 app.get("/login", function (req, res) {
   if (!authenticated) {
@@ -246,7 +255,7 @@ app.get("/login", function (req, res) {
   }
 
   else {
-    res.redirect("/")
+    res.redirect(`/`);
   }
 })
 
@@ -260,10 +269,10 @@ app.post("/login", function (req, res) {
     User.findOne({ email: loginEmail, password: loginPassword })
       .then((foundList) => {
         if (foundList) {
-          res.redirect('/')
+          res.redirect(`/${foundList.email}`);
           authenticated = true
+
         } else {
-          res.redirect("/login")
           console.log("user not exist");
         }
       })
@@ -278,6 +287,46 @@ app.post("/login", function (req, res) {
 
 // app.post("/logout", function (req, res) {
 //   authenticated = false
+// })
+
+
+app.get(`/:userEmailId`, function (req, res) {
+  let userEmailId = req.params.userEmailId
+
+  // if (userEmailId == "signup") {
+  //   res.redirect("/signup")
+  // }
+  // if (authenticated) {
+  List.findOne({ name: userEmailId })
+    .then((foundList) => {
+      if (!foundList) {
+        const list = new List({
+          name: userEmailId,
+          items: defaultItems
+        })
+
+        res.redirect(`/`)
+        list.save()
+      }
+
+      else {
+        res.render("main/list", { listTitle: foundList.name, newListItems: foundList.items })
+      }
+    })
+  // }
+
+  if (!authenticated) {
+    res.redirect("/signup")
+  }
+})
+
+// app.get(`/:typo`, function (req, res) {
+//   let typo = req.params.typo
+//   if (typo != "signup" || "login") {
+//     res.send("Page Not Found")
+//   } else {
+//     res.redirect(`/${typo}`)
+//   }
 // })
 
 
